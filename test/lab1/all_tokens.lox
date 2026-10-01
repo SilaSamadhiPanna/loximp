@@ -1,0 +1,42 @@
+(){}.,;
+
++ - * /
+
+!
+!=
+=
+==
+<
+<=
+>
+>=
+
+0
+123
+123.456
+
+"hello"
+"hello world!"
+"hello
+world"
+""
+
+identifier
+identifier123
+_private
+snake_case_123
+
+and
+else
+false
+for
+if
+or
+print
+return
+true
+var
+while
+nil
+
+// This entire line should be ignored by the scanner.

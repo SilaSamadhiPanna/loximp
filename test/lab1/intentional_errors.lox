@@ -1,0 +1,27 @@
+@
+#
+$
+%
+^
+&
+[
+]
+:
+?
+'
+
+good@bad
+123#456
+hello$world
+
+// @ # $ % ^ & [ ] : ? '
+// The symbols above should cause NO errors because they are inside comments.
+
+"@ # $ % ^ & [ ] : ? '"
+"These symbols are also valid inside a string: @#$%^&[]"
+
+123 + 456
+if true
+var employee123
+
+"unterminated string
