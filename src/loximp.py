@@ -61,6 +61,71 @@ KEYWORDS = {
     "nil": NIL
 }
 
+class Expression:
+    pass
+
+
+class Literal(Expression):
+    def __init__(self, value):
+        self.value = value
+
+class Grouping(Expression):
+    def __init__(self, expression):
+        self.expression = expression
+
+class Unary(Expression):
+    def __init__(self, operator, operand):
+        self.operator = operator
+        self.operand = operand
+
+class Binary(Expression):
+    def __init__(self, left, token, right):
+        self.left = left
+        self.token = token
+        self.right = right
+
+# --- start AI code ---
+
+class ASTPrinter:
+
+    def print_expression(self, expression):
+
+        if isinstance(expression, Literal):
+
+            if expression.value is None:
+                return "NIL"
+
+            elif expression.value is True:
+                return "TRUE"
+
+            elif expression.value is False:
+                return "FALSE"
+
+            return str(expression.value)
+        
+        elif isinstance(expression, Grouping):
+            inner = self.print_expression(expression.expression)
+            groupstring = "(GROUP " + inner + ")"
+            return groupstring
+
+        elif isinstance(expression, Unary):
+            operand = self.print_expression(expression.operand)
+            operator = expression.operator.lexeme
+            unarystring = "(" + operator + " " + operand + ")"
+            return unarystring
+
+        elif isinstance(expression, Binary):
+            left = self.print_expression(expression.left)
+            operator = expression.token.lexeme
+            right = self.print_expression(expression.right)
+            binarystring = "(" + operator + " " + left + " " + right + ")"
+            return binarystring
+        
+        else:
+            print("UNKNOWN TYPE ERROR")
+        
+# --- end AI code ---
+
 class Token:
     def __init__(self, token_type, lexeme, literal, line):
         self.token_type = token_type
@@ -325,7 +390,12 @@ def RunFile(name):
     RunScanner(inputfilecontents)
 
 def main():
+    printer = ASTPrinter()
+
+    # --- start AI code ---
+    #Existence of sys.argv learned from ChatGPT
     MainRunTree(sys.argv)
+    #--- end AI code ---
     print("PROGRAM ENDED")
     print()
     print()
