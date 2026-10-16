@@ -138,6 +138,8 @@ class Scanner:
         self.source = source
         self.tokens = []
 
+        self.had_error = False
+
         self.start = 0
         self.current = 0
         self.line = 1
@@ -332,25 +334,160 @@ class Scanner:
             self.add_token(IDENTIFIER)
 
     def error(self, message):
+        self.had_error = True
         print("[LINE", self.line, "] SCANNER ERROR:", message)
 
+class Parser:
+    def __init__(self, tokens):
+        self.tokens = tokens
+        self.current = 0
+
+    def parse(self):
+        try:
+            expression = self.expression()
+
+            if not self.is_at_end():
+                raise self.error(self.peek(), "UNEXEPECTED TOKEN")
+        
+            return expression
+
+        except ParseError as error:
+            print(error)
+            return None
+
+    def peek(self):
+        return self.tokens[self.current]
+
+    def previous(self):
+        return self.tokens[self.current - 1]
+
+    def is_at_end(self):
+        return self.peek().token_type == EOF
+
+    def advance(self):
+        if not self.is_at_end():
+            self.current += 1
+        return self.previous()
+    
+    def check(self, token_type):
+        if self.is_at_end():
+            return False
+        return self.peek().token_type == token_type
+
+    def matchtoken(self, *token_types):
+        for token_type in token_types:
+            if self.check(token_type):
+                self.advance()
+                return True
+        return False
+
+    def primary(self):
+
+        if self.matchtoken(FALSE):
+            return Literal(False)
+
+        if self.matchtoken(TRUE):
+            return Literal(True)
+
+        if self.matchtoken(NIL):
+            return Literal(None)
+
+        if self.matchtoken(NUMBER, STRING):
+            return Literal(self.previous().literal)
+
+        if self.matchtoken(LEFT_PARENTHESES):
+            expression = self.expression()
+            self.consume(RIGHT_PARENTHESES, "EXPECTED ')' AFTER EXPRESSION")
+            return Grouping(expression)
+
+        raise self.error(self.peek(), "EXPECTED EXPRESSION")
+
+    def unary(self):
+
+        if self.matchtoken(BANG, MINUS):
+            operator = self.previous()
+            operand = self.unary()
+            return Unary(operator, operand)
+
+        return self.primary()
+
+    def factor(self):
+        expr = self.unary()
+
+        while self.matchtoken(SLASH, STAR):
+            operator = self.previous()
+            right = self.unary()
+            expr = Binary(expr, operator, right)
+        return expr
+
+    def term(self):
+        expr = self.factor()
+
+        while self.matchtoken(MINUS, PLUS):
+            operator = self.previous()
+            right = self.factor()
+            expr = Binary(expr, operator, right)
+
+        return expr
+
+    def comparison(self):
+        expr  = self.term()
+
+        while self.matchtoken(GREATER, GREATER_EQUAL, LESS, LESS_EQUAL):
+            operator = self.previous()
+            right = self.term()
+            expr = Binary(expr, operator, right)
+        
+        return expr
+
+    def equality(self):
+        expr = self.comparison()
+
+        while self.matchtoken(BANG_EQUAL, EQUAL_EQUAL):
+            operator = self.previous()
+            right = self.comparison()
+            expr = Binary(expr, operator, right)
+
+        return expr
+        
+    def expression(self):
+        return self.equality()
+    
+    def consume(self, token_type, message):
+
+        if self.check(token_type):
+            return self.advance()
+        
+        raise self.error(self.peek(), message)
+
+    def error(self, token, message):
+
+        if token.token_type == EOF:
+            location = "end of input"
+        else:
+            location = "'" + token.lexeme + "'"
+
+        return ParseError(f"[LINE {token.line} at {location}: {message}")
 
 
+
+class ParseError(Exception):
+    pass
 
 def RunScanner(parameter):
     # Main scanner entry. Called by Repl() and RunFile()
     scanner = Scanner(parameter)
     tokens = scanner.scan_tokens()
 
-#token checker - eventually to be removed
-    for token in tokens:
-        print(
-            token.token_type,
-            token.lexeme,
-            token.literal,
-            token.line
-        )
+    if scanner.had_error:
+        return
 
+    parser = Parser(tokens)
+    expression = parser.parse()
+
+    if expression is not None:
+        printer = ASTPrinter()
+        print(printer.print_expression(expression))
     
 def MainRunTree(inputline):
     #first function call of main, passes to RunFile or REPL mode

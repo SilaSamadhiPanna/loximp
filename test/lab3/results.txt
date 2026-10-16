@@ -1,0 +1,340 @@
+Test 1:
+    test/lab3/arithmetic.lox
+
+    SOURCE INPUT:
+    10 - 3 + 2
+
+    ACTUAL OUTPUT:
+    (+ (- 10.0 3.0) 2.0)
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    (+ (- 10.0 3.0) 2.0)
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 2:
+    test/lab3/associativity.lox
+
+    SOURCE INPUT:
+    16 / 4 / 2
+
+    ACTUAL OUTPUT:
+    (/ (/ 16.0 4.0) 2.0)
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    (/ (/ 16.0 4.0) 2.0)
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 3:
+    test/lab3/boolean.lox
+
+    SOURCE INPUT:
+    true == false
+
+    ACTUAL OUTPUT:
+    (== TRUE FALSE)
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    (== TRUE FALSE)
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 4:
+    test/lab3/comparison.lox
+
+    SOURCE INPUT:
+    1 < 2 <= 3
+
+    ACTUAL OUTPUT:
+    (<= (< 1.0 2.0) 3.0)
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    (<= (< 1.0 2.0) 3.0)
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 5:
+    test/lab3/comparison2.lox
+
+    SOURCE INPUT:
+    4 > 3 >= 2
+
+    ACTUAL OUTPUT:
+    (>= (> 4.0 3.0) 2.0)
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    (>= (> 4.0 3.0) 2.0)
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 6:
+    test/lab3/equality.lox
+
+    SOURCE INPUT:
+    1 == 1 != 2
+
+    ACTUAL OUTPUT:
+    (!= (== 1.0 1.0) 2.0)
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    (!= (== 1.0 1.0) 2.0)
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 7:
+    test/lab3/grouping.lox
+
+    SOURCE INPUT:
+    ((1 + 2) * (3 - 4))
+
+    ACTUAL OUTPUT:
+    (GROUP (* (GROUP (+ 1.0 2.0)) (GROUP (- 3.0 4.0))))
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    (GROUP (* (GROUP (+ 1.0 2.0)) (GROUP (- 3.0 4.0))))
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 8:
+    test/lab3/invalid_character.lox
+
+    SOURCE INPUT:
+    1 + @ 2
+
+    ACTUAL OUTPUT:
+    [LINE 1 ] SCANNER ERROR: UNEXPECTED CHARACTER: @
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    [LINE 1 ] SCANNER ERROR: UNEXPECTED CHARACTER: @
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 9:
+    test/lab3/missing_left_operand.lox
+
+    SOURCE INPUT:
+    * 2
+
+    ACTUAL OUTPUT:
+    [LINE 1 at '*': EXPECTED EXPRESSION
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    [LINE 1 at '*': EXPECTED EXPRESSION
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 10:
+    test/lab3/missing_operand_end.lox
+
+    SOURCE INPUT:
+    1 +
+
+    ACTUAL OUTPUT:
+    [LINE 2 at end of input: EXPECTED EXPRESSION
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    [LINE 2 at end of input: EXPECTED EXPRESSION
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 11:
+    test/lab3/missing_operand.lox
+
+    SOURCE INPUT:
+    1 + * 2
+
+    ACTUAL OUTPUT:
+    [LINE 1 at '*': EXPECTED EXPRESSION
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    [LINE 1 at '*': EXPECTED EXPRESSION
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 12:
+    test/lab3/missing_parenthesis.lox
+
+    SOURCE INPUT:
+    (1 + 2
+
+    ACTUAL OUTPUT:
+    [LINE 2 at end of input: EXPECTED ')' AFTER EXPRESSION
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    [LINE 2 at end of input: EXPECTED ')' AFTER EXPRESSION
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 13:
+    test/lab3/multiplication.lox
+
+    SOURCE INPUT:
+    8 / 2 * 3
+
+    ACTUAL OUTPUT:
+    (* (/ 8.0 2.0) 3.0)
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    (* (/ 8.0 2.0) 3.0)
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 14:
+    test/lab3/nil.lox
+
+    SOURCE INPUT:
+    nil
+
+    ACTUAL OUTPUT:
+    NIL
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    NIL
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 15:
+    test/lab3/number.lox
+
+    SOURCE INPUT:
+    42
+
+    ACTUAL OUTPUT:
+    42.0
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    42.0
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 16:
+    test/lab3/precedence.lox
+
+    SOURCE INPUT:
+    1 + 2 * 3 == 7
+
+    ACTUAL OUTPUT:
+    (== (+ 1.0 (* 2.0 3.0)) 7.0)
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    (== (+ 1.0 (* 2.0 3.0)) 7.0)
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 17:
+    test/lab3/string.lox
+
+    SOURCE INPUT:
+    "hello"
+
+    ACTUAL OUTPUT:
+    hello
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    hello
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 18:
+    test/lab3/trailing_tokens.lox
+
+    SOURCE INPUT:
+    1 + 2 3
+
+    ACTUAL OUTPUT:
+    [LINE 1 at '3': UNEXEPECTED TOKEN
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    [LINE 1 at '3': UNEXEPECTED TOKEN
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 19:
+    test/lab3/unary.lox
+
+    SOURCE INPUT:
+    !-3
+
+    ACTUAL OUTPUT:
+    (! (- 3.0))
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    (! (- 3.0))
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
+Test 20:
+    test/lab3/unexpected_parenthesis.lox
+
+    SOURCE INPUT:
+    1 + 2)
+
+    ACTUAL OUTPUT:
+    [LINE 1 at ')': UNEXEPECTED TOKEN
+    PROGRAM ENDED
+
+    EXPECTED OUTPUT:
+    [LINE 1 at ')': UNEXEPECTED TOKEN
+    PROGRAM ENDED
+
+    TEST PASSED
+
+
