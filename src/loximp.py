@@ -64,6 +64,16 @@ KEYWORDS = {
 class Expression:
     pass
 
+class Statement:
+    pass
+
+class ExpressionStatement(Statement):
+    def __init__(self, expression):
+        self.expression = expression
+
+class PrintStatement(Statement):
+    def __init__(self, expression):
+        self.expression = expression
 
 class Literal(Expression):
     def __init__(self, value):
@@ -341,19 +351,56 @@ class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
         self.current = 0
+        self.had_error = False
 
     def parse(self):
-        try:
-            expression = self.expression()
 
-            if not self.is_at_end():
-                raise self.error(self.peek(), "UNEXEPECTED TOKEN")
+        statements = []
         
-            return expression
+        while not self.is_at_end():
+            try:
+                statements.append(self.statement())
 
-        except ParseError as error:
-            print(error)
-            return None
+            except ParseError as error:
+                self.had_error = True
+                print(error, file=sys.stderr)
+                self.synchronize()
+
+        return statements
+
+    def statement(self):
+        if self.matchtoken(PRINT):
+            return self.print_statement()
+        
+        return self.expression_statement()
+
+    def synchronize(self):
+        if self.is_at_end():
+            return
+        
+        if self.peek().token_type == PRINT:
+            return
+
+        self.advance()
+
+        while not self.is_at_end():
+            if self.previous().token_type == SEMICOLON:
+                return
+            
+            if self.peek().token_type == PRINT:
+                return
+
+            self.advance()
+
+    def print_statement(self):
+        value = self.expression()
+        self.consume(SEMICOLON, "EXPECT ';' AFTER VALUE.")
+        return PrintStatement(value)
+
+    def expression_statement(self):
+        expr = self.expression()
+        self.consume(SEMICOLON, "EXPECT ';' AFTER EXPRESSION.")
+        return ExpressionStatement(expr)
 
     def peek(self):
         return self.tokens[self.current]
@@ -469,25 +516,175 @@ class Parser:
 
         return ParseError(f"[LINE {token.line} at {location}: {message}")
 
+class LoxRuntimeError(Exception):
+    def __init__(self, token, message):
+        super().__init__(message)
+        self.token = token
+
+class Evaluator:
+    def evaluate(self, expression):
+        if isinstance(expression, Literal):
+            return expression.value
+        
+        elif isinstance(expression, Grouping):
+            return self.evaluate(expression.expression)
+
+        elif isinstance(expression, Unary):
+            right = self.evaluate(expression.operand)
+            operator = expression.operator
+
+            if operator.token_type == MINUS:
+                if isinstance(right, bool):
+                    right = float(right)
+
+                self.check_number_operand(operator, right)
+                return -right
+
+            elif operator.token_type == BANG:
+                return not self.is_truthy(right)
+
+        elif isinstance(expression, Binary):
+            left = self.evaluate(expression.left)
+            right = self.evaluate(expression.right)
+            operator = expression.token
+
+            if isinstance(left, bool):
+                left = float(left)
+
+            if isinstance(right, bool):
+                right = float(right)
+
+            if operator.token_type == EQUAL_EQUAL:
+                return self.is_equal(left, right)
+
+            elif operator.token_type == BANG_EQUAL:
+                return not self.is_equal(left, right)
+
+            elif operator.token_type == PLUS:
+                if isinstance(left, float) and isinstance(right, float):
+                    return left + right
+                if isinstance(left, str) and isinstance(right, str):
+                    return left + right
+
+                raise LoxRuntimeError(operator, "OPERANDS MUST BE TWO NUMBERS OR STRINGS")
+
+            self.check_number_operands(operator, left, right)
+
+            if operator.token_type == MINUS:
+                return left - right
+            
+            elif operator.token_type == SLASH:
+                if right == 0.0:
+                    raise LoxRuntimeError(operator, "CANNOT DIVIDE BY ZERO")
+                return left / right
+
+            elif operator.token_type == STAR:
+                return left * right
+
+            elif operator.token_type == GREATER:
+                return left > right
+
+            elif operator.token_type == GREATER_EQUAL:
+                return left >= right
+
+            elif operator.token_type == LESS:
+                return left < right
+
+            elif operator.token_type == LESS_EQUAL:
+                return left <= right
+
+    def execute(self, statement):
+        if isinstance(statement, ExpressionStatement):
+            self.evaluate(statement.expression)
+
+        elif isinstance(statement, PrintStatement):
+            value = self.evaluate(statement.expression)
+            print(self.stringify(value))
+
+    def interpret(self, statements):
+        try:
+            for statement in statements:
+                self.execute(statement)
+
+        except LoxRuntimeError as error:
+            print(f"{error}\n[LINE {error.token.line}]", file=sys.stderr)
+
+    def stringify(self, value):
+        if value is None:
+            return "NIL"
+        
+        if value is True:
+            return "TRUE"
+
+        if value is False:
+            return "FALSE"
+        
+        if isinstance(value, float):
+            text = str(value)
+
+            if text.endswith(".0"):
+                text = text[:-2]
+
+            return text
+
+        return str(value)
+
+    def check_number_operand(self, operator, operand):
+        if isinstance(operand, float):
+            return
+        
+        raise LoxRuntimeError(
+            operator, "OPERAND MUST BE A NUMBER"
+        )
+    def check_number_operands(self, operator, left, right):
+        if isinstance(left, float) and isinstance(right, float):
+            return
+
+        raise LoxRuntimeError(operator, "OPERANDS MUST BE NUMBERS")
+
+    def is_equal(self, left, right):
+        if left is None and right is None:
+            return True
+
+        if left is None:
+            return False
+
+        return left == right
+    def is_truthy(self, value):
+        if value is None:
+            return False
+
+        if isinstance(value, bool):
+            return value
+
+        if isinstance(value, float):
+            return value != 0.0
+
+        return True
+
 
 
 class ParseError(Exception):
     pass
 
+
 def RunScanner(parameter):
     # Main scanner entry. Called by Repl() and RunFile()
+    evaluator = Evaluator()
     scanner = Scanner(parameter)
     tokens = scanner.scan_tokens()
 
     if scanner.had_error:
         return
 
-    parser = Parser(tokens)
-    expression = parser.parse()
 
-    if expression is not None:
-        printer = ASTPrinter()
-        print(printer.print_expression(expression))
+    parser = Parser(tokens)
+    statements = parser.parse()
+
+    if parser.had_error:
+        return
+
+    evaluator.interpret(statements)
     
 def MainRunTree(inputline):
     #first function call of main, passes to RunFile or REPL mode
@@ -529,7 +726,7 @@ def RunFile(name):
 def main():
     printer = ASTPrinter()
 
-    # --- start AI code ---
+    # --- start AI code ---print
     #Existence of sys.argv learned from ChatGPT
     MainRunTree(sys.argv)
     #--- end AI code ---
