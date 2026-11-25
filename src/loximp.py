@@ -94,6 +94,24 @@ class Binary(Expression):
         self.token = token
         self.right = right
 
+class VarStatement(Statement):
+    def __init__(self, name, initializer):
+        self.name = name
+        self.initializer = initializer
+
+class BlockStatement(Statement):
+    def __init__(self, statements):
+        self.statements = statements
+
+class Variable(Expression):
+    def __init__(self, name):
+        self.name = name
+
+class Assign(Expression):
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+
 # --- start AI code ---
 
 class ASTPrinter:
@@ -358,27 +376,67 @@ class Parser:
         statements = []
         
         while not self.is_at_end():
-            try:
-                statements.append(self.statement())
+            statement = self.declaration()
 
-            except ParseError as error:
-                self.had_error = True
-                print(error, file=sys.stderr)
-                self.synchronize()
+            if statement is not None:
+                statements.append(statement)            
 
         return statements
+
+    def declaration(self):
+        try:
+            if self.matchtoken(VAR):
+                return self.var_declaration()
+
+            return self.statement()
+
+        except ParseError as error:
+            self.had_error = True
+            print(error, file=sys.stderr)
+            self.synchronize()
+            return None
 
     def statement(self):
         if self.matchtoken(PRINT):
             return self.print_statement()
+
+        if self.matchtoken(LEFT_BRACE):
+            return BlockStatement(self.block())
+
+        if self.matchtoken(RIGHT_BRACE):
+            raise self.error(self.previous(), "UNMATCHED '}'.")
         
         return self.expression_statement()
+
+    def block(self):
+        statements = []
+
+        while not self.check(RIGHT_BRACE) and not self.is_at_end():
+            statement = self.declaration()
+
+            if statement is not None:
+                statements.append(statement)
+
+        self.consume(RIGHT_BRACE, "EXPECT '}' AFTER BLOCK.")
+
+        return statements
+
+    def var_declaration(self):
+        name = self.consume(IDENTIFIER, "EXPECT VARIABLE NAME.")
+        initializer = None
+
+        if self.matchtoken(EQUAL):
+            initializer = self.expression()
+
+        self.consume(SEMICOLON, "EXPECT ';' AFTER VARIABLE DECLARATION.")
+
+        return VarStatement(name, initializer)
 
     def synchronize(self):
         if self.is_at_end():
             return
         
-        if self.peek().token_type == PRINT:
+        if self.peek().token_type in (VAR, PRINT):
             return
 
         self.advance()
@@ -387,7 +445,7 @@ class Parser:
             if self.previous().token_type == SEMICOLON:
                 return
             
-            if self.peek().token_type == PRINT:
+            if self.peek().token_type in (VAR, PRINT):
                 return
 
             self.advance()
@@ -441,6 +499,9 @@ class Parser:
 
         if self.matchtoken(NUMBER, STRING):
             return Literal(self.previous().literal)
+
+        if self.matchtoken(IDENTIFIER):
+            return Variable(self.previous())
 
         if self.matchtoken(LEFT_PARENTHESES):
             expression = self.expression()
@@ -498,7 +559,21 @@ class Parser:
         return expr
         
     def expression(self):
-        return self.equality()
+        return self.assignment()
+
+    def assignment(self):
+        expr = self.equality()
+
+        if self.matchtoken(EQUAL):
+            equals = self.previous()
+            value = self.assignment()
+
+            if isinstance(expr, Variable):
+                return Assign(expr.name, value)
+
+            raise self.error(equals, "INVALID ASSIGNMENT TARGET.")
+
+        return expr
     
     def consume(self, token_type, message):
 
@@ -514,18 +589,58 @@ class Parser:
         else:
             location = "'" + token.lexeme + "'"
 
-        return ParseError(f"[LINE {token.line} at {location}: {message}")
+        return ParseError(f"[LINE {token.line}] at {location}: {message}")
 
 class LoxRuntimeError(Exception):
     def __init__(self, token, message):
         super().__init__(message)
         self.token = token
 
+class Environment:
+    def __init__(self, enclosing=None):
+        self.values = {}
+        self.enclosing = enclosing
+
+    def define(self, name, value):
+        self.values[name] = value
+
+    def get(self, name):
+        if name.lexeme in self.values:
+            return self.values[name.lexeme]
+
+        if self.enclosing is not None:
+            return self.enclosing.get(name)
+
+        raise LoxRuntimeError(name, f"UNDEFINED VARIABLE '{name.lexeme}'.")
+
+    def assign(self, name, value):
+        if name.lexeme in self.values:
+            self.values[name.lexeme] = value
+            return
+
+        if self.enclosing is not None:
+            self.enclosing.assign(name, value)
+            return
+        
+        raise LoxRuntimeError(name, f"UNDEFINED VARIABLE '{name.lexeme}'.")
+
 class Evaluator:
+
+    def __init__(self):
+        self.environment = Environment()
+
     def evaluate(self, expression):
         if isinstance(expression, Literal):
             return expression.value
+
+        elif isinstance(expression, Variable):
+            return self.environment.get(expression.name)
         
+        elif isinstance(expression, Assign):
+            value = self.evaluate(expression.value)
+            self.environment.assign(expression.name, value)
+            return value
+
         elif isinstance(expression, Grouping):
             return self.evaluate(expression.expression)
 
@@ -601,6 +716,29 @@ class Evaluator:
             value = self.evaluate(statement.expression)
             print(self.stringify(value))
 
+        elif isinstance(statement, VarStatement):
+            value = None
+
+            if statement.initializer is not None:
+                value = self.evaluate(statement.initializer)
+
+            self.environment.define(statement.name.lexeme, value)
+
+        elif isinstance(statement, BlockStatement):
+            self.execute_block(statement.statements,Environment(self.environment))
+
+    def execute_block(self, statements, environment):
+        previous = self.environment
+
+        try:
+            self.environment = environment
+
+            for statement in statements:
+                self.execute(statement)
+
+        finally:
+            self.environment = previous
+
     def interpret(self, statements):
         try:
             for statement in statements:
@@ -667,10 +805,11 @@ class Evaluator:
 class ParseError(Exception):
     pass
 
+evaluator = Evaluator()
 
 def RunScanner(parameter):
     # Main scanner entry. Called by Repl() and RunFile()
-    evaluator = Evaluator()
+    
     scanner = Scanner(parameter)
     tokens = scanner.scan_tokens()
 

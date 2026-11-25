@@ -1,0 +1,11 @@
+var total = 1;
+print total;
+
+total = total + 1;
+print total;
+
+var pending;
+print pending;
+
+var total = 0;
+print total;
